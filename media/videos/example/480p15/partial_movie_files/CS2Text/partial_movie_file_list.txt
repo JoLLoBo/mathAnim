@@ -1,0 +1,2 @@
+# This file is used internally by FFMPEG.
+file 'file:D:/vsCodeProj/manim/media/videos/example/480p15/partial_movie_files/CS2Text/1584795214_4277570474_2672570662.mp4'
