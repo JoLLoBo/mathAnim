@@ -310,357 +310,6 @@ class Restaurant(Scene):
         return group
 
 
-class InfiniteCountingLoading(Scene):
-    def construct(self):
-        # --- Part 1: Counting numbers ---
-        count_title = Text("Counting all numbers starting from 1...", font_size=36)
-        self.play(Write(count_title))
-        self.wait(0.8)
-
-        # Show a few numbers appearing quickly
-        numbers = VGroup()
-        for i in range(1, 7):
-            num = Text(str(i), font_size=48)
-            numbers.add(num)
-        numbers.arrange(RIGHT, buff=0.5)
-        numbers.next_to(count_title, DOWN, buff=1.0)
-
-        for num in numbers:
-            self.play(Write(num), run_time=0.2)
-            self.wait(0.1)
-
-        # Add an ellipsis to indicate infinity
-        ellipsis = Text("...", font_size=60)
-        ellipsis.next_to(numbers, RIGHT, buff=0.3)
-        self.play(Write(ellipsis))
-        self.wait(0.5)
-
-        # Conclusion: it would take infinite time
-        infinity_text = Text("would take ∞ time", font_size=36, color=YELLOW)
-        infinity_text.next_to(numbers, DOWN, buff=1.0)
-        self.play(Write(infinity_text))
-        self.wait(2)
-
-        # Transition: fade out counting elements
-        self.play(FadeOut(VGroup(count_title, numbers, ellipsis, infinity_text)))
-        self.wait(0.5)
-
-        # --- Part 2: Loading bar that never reaches 100% ---
-        bar_title = Text("Loading...", font_size=36)
-        bar_title.to_edge(UP)
-        self.play(Write(bar_title))
-
-        # Outer border
-        border = RoundedRectangle(
-            width=6,
-            height=0.8,
-            corner_radius=0.2,
-            stroke_color=WHITE,
-            stroke_width=4,
-            fill_opacity=0,
-        )
-        border.next_to(bar_title, DOWN, buff=1.0)
-        self.play(Create(border))
-
-        # Inner fill rectangle
-        fill = Rectangle(
-            width=0, height=0.6, fill_color=BLUE, fill_opacity=1, stroke_width=0
-        )
-        fill.align_to(border, LEFT)
-        fill.align_to(border, UP)  # flush top edges
-        fill.shift(UP * 0.1)  # align inside border
-        self.add(fill)
-
-        # Percentage text (always updated)
-        percent_text = Text("0%", font_size=32, color=WHITE)
-        percent_text.move_to(border.get_center())
-
-        # Update function for percent text and fill width
-        def update_bar(mob, alpha):
-            # alpha goes from 0 to 1 as the animation progresses
-            # We use a function that approaches 100 but never reaches it: 100*(1 - exp(-5*alpha))
-            percent = 100 * (1 - np.exp(-5 * alpha))
-            # Cap at 99.99 to avoid display rounding to 100
-            capped = min(percent, 99.99)
-            # Update fill width
-            fill.stretch_to_fit_width(border.width * capped / 100)
-            fill.align_to(border, LEFT)
-            # Update text
-            new_text = Text(f"{capped:.2f}%", font_size=32, color=WHITE)
-            new_text.move_to(border.get_center())
-            percent_text.become(new_text)
-
-        # Animation: the bar grows slowly but asymptotically
-        self.play(
-            UpdateFromAlphaFunc(
-                VGroup(fill, percent_text), update_bar, run_time=8, rate_func=linear
-            )
-        )
-
-        # Final message
-        never_text = Text("It never reaches 100%", font_size=30, color=RED)
-        never_text.next_to(border, DOWN, buff=1.0)
-        self.play(Write(never_text))
-        self.wait(2)
-
-
-class CS2MindMapWithLoadingBars(Scene):
-    def construct(self):
-        # ==============================================================
-        # ORIGINAL TREE CONSTRUCTION (unchanged)
-        # ==============================================================
-        # Main title
-        cs2 = Text("CS2", font_size=72)
-        cs2.move_to(UP * 3)
-        self.play(Write(cs2))
-
-        # First level (tighter buff so all five fit later)
-        communication = Text("Communication", font_size=28)
-        economy = Text("Economy", font_size=28)
-        strategy = Text("Strategy", font_size=28)
-        mechanics = Text("Mechanics", font_size=28)
-
-        first_level_labels = [communication, economy, strategy, mechanics]
-        first_level = VGroup(*first_level_labels)
-        first_level.arrange(RIGHT, buff=1.0)
-        first_level.move_to(UP * 0.8)
-
-        cs2_to_strategy_line = None
-        first_level_lines = []
-
-        for label in first_level_labels:
-            line = Line(cs2.get_bottom(), cs2.get_bottom(), stroke_width=4)
-            self.add(line)
-            if label is strategy:
-                cs2_to_strategy_line = line
-            first_level_lines.append(line)
-            self.play(
-                line.animate.put_start_and_end_on(cs2.get_bottom(), label.get_top()),
-                run_time=0.8,
-            )
-            self.play(Write(label), run_time=0.3)
-
-        # Add Time Management, then centre all five first‑level labels
-        time_mgmt = Text("Time Management", font_size=28)
-        time_mgmt.next_to(mechanics, RIGHT, buff=1.0)
-        all_labels = VGroup(communication, economy, strategy, mechanics, time_mgmt)
-        target_center = UP * 0.8
-        shift = target_center - all_labels.get_center()
-
-        self.add(time_mgmt)
-
-        anims = []
-        for label in all_labels:
-            anims.append(label.animate.shift(shift))
-        for label, line in zip(first_level_labels, first_level_lines):
-            target_top = label.get_top() + shift
-            anims.append(
-                line.animate.put_start_and_end_on(cs2.get_bottom(), target_top)
-            )
-        line_time = Line(cs2.get_bottom(), cs2.get_bottom(), stroke_width=4)
-        self.add(line_time)
-        target_top_time = time_mgmt.get_top() + shift
-        anims.append(
-            line_time.animate.put_start_and_end_on(cs2.get_bottom(), target_top_time)
-        )
-        self.play(AnimationGroup(*anims), run_time=1.2)
-
-        # Strategy → Early Round, Mid Round, Afterplant
-        early_round = Text("Early Round", font_size=22)
-        mid_round = Text("Mid Round", font_size=22)
-        afterplant = Text("Afterplant", font_size=22)
-        strategy_children = VGroup(early_round, mid_round, afterplant)
-        strategy_children.arrange(RIGHT, buff=0.8)
-        strategy_children.next_to(strategy, DOWN, buff=1.2)
-
-        strategy_to_early_round_line = None
-        for label in strategy_children:
-            line = Line(strategy.get_bottom(), strategy.get_bottom(), stroke_width=3)
-            self.add(line)
-            if label is early_round:
-                strategy_to_early_round_line = line
-            self.play(
-                line.animate.put_start_and_end_on(
-                    strategy.get_bottom(), label.get_top()
-                ),
-                run_time=0.6,
-            )
-            self.play(Write(label), run_time=0.3)
-
-        # Third level: Early Round → Information, Map Control
-        information = Text("Information", font_size=20)
-        map_control = Text("Map Control", font_size=20)
-        early_round_children = VGroup(information, map_control)
-        early_round_children.arrange(RIGHT, buff=0.6)
-        early_round_children.next_to(early_round, DOWN, buff=0.8)
-
-        early_round_to_information_line = None
-        for label in early_round_children:
-            line = Line(
-                early_round.get_bottom(), early_round.get_bottom(), stroke_width=2
-            )
-            self.add(line)
-            if label is information:
-                early_round_to_information_line = line
-            self.play(
-                line.animate.put_start_and_end_on(
-                    early_round.get_bottom(), label.get_top()
-                ),
-                run_time=0.5,
-            )
-            self.play(Write(label), run_time=0.3)
-
-        # Fourth level: Information → jiggle, jumpspot, pixel angle, awp hold
-        jiggle = Text("jiggle", font_size=18)
-        jumpspot = Text("jumpspot", font_size=18)
-        pixel_angle = Text("pixel angle", font_size=18)
-        awp_hold = Text("awp hold", font_size=18)
-        info_children = VGroup(jiggle, jumpspot, pixel_angle, awp_hold)
-        info_children.arrange(RIGHT, buff=0.5)
-        info_children.next_to(information, DOWN, buff=0.8)
-
-        info_child_lines = []
-        for label in info_children:
-            line = Line(
-                information.get_bottom(), information.get_bottom(), stroke_width=2
-            )
-            self.add(line)
-            info_child_lines.append(line)
-            self.play(
-                line.animate.put_start_and_end_on(
-                    information.get_bottom(), label.get_top()
-                ),
-                run_time=0.5,
-            )
-            self.play(Write(label), run_time=0.3)
-
-        # Yellow cascade down the Strategy pathway
-        self.play(cs2.animate.set_color(YELLOW), run_time=0.4)
-        self.play(cs2_to_strategy_line.animate.set_stroke(YELLOW), run_time=0.4)
-        self.play(strategy.animate.set_color(YELLOW), run_time=0.4)
-        self.play(strategy_to_early_round_line.animate.set_stroke(YELLOW), run_time=0.4)
-        self.play(early_round.animate.set_color(YELLOW), run_time=0.4)
-        self.play(
-            early_round_to_information_line.animate.set_stroke(YELLOW), run_time=0.4
-        )
-        self.play(information.animate.set_color(YELLOW), run_time=0.4)
-
-        for line, label in zip(info_child_lines, info_children):
-            self.play(line.animate.set_stroke(YELLOW), run_time=0.3)
-            self.play(label.animate.set_color(YELLOW), run_time=0.3)
-
-        self.wait(2)
-
-        # ==============================================================
-        # NEW: LOADING BARS FOR EVERY NODE (LaTeX‑free)
-        # ==============================================================
-        percentages = {
-            communication: 80,
-            economy: 70,
-            strategy: 50,  # lowest among siblings
-            mechanics: 85,
-            time_mgmt: 60,
-            early_round: 30,  # lowest
-            mid_round: 50,
-            afterplant: 40,
-            information: 20,  # lowest
-            map_control: 35,
-            jiggle: 10,
-            jumpspot: 15,
-            pixel_angle: 12,
-            awp_hold: 14,
-        }
-
-        all_nodes = [
-            communication,
-            economy,
-            strategy,
-            mechanics,
-            time_mgmt,
-            early_round,
-            mid_round,
-            afterplant,
-            information,
-            map_control,
-            jiggle,
-            jumpspot,
-            pixel_angle,
-            awp_hold,
-        ]
-
-        trackers = []  # (ValueTracker, target percentage)
-        pct_texts = []  # Text mobjects that display the percentage
-
-        for node in all_nodes:
-            pct_target = percentages[node]
-
-            # Background rectangle
-            bg_rect = Rectangle(
-                width=node.get_width() + 0.6,
-                height=node.get_height() + 0.4,
-                stroke_color=WHITE,
-                stroke_width=1,
-                fill_opacity=0.15,
-                fill_color=GREY,
-                z_index=-1,
-            )
-            bg_rect.move_to(node.get_center())
-
-            # Yellow fill rectangle (starts empty)
-            fill_rect = Rectangle(
-                width=0,
-                height=bg_rect.get_height(),
-                fill_color=YELLOW,
-                fill_opacity=0.7,
-                stroke_width=0,
-                z_index=0,
-            )
-            fill_rect.align_to(bg_rect, LEFT)
-            fill_rect.align_to(bg_rect, UP)
-            fill_rect.shift(UP * 0.01)  # nudge to sit inside border
-
-            # Percentage text (plain Text, no LaTeX)
-            pct_text = Text("0%", font_size=12, color=WHITE, z_index=1)
-            # Position it to the right of the bar, and keep it there with an updater
-            pct_text.next_to(bg_rect, RIGHT, buff=0.1)
-
-            # Value tracker for this node
-            tracker = ValueTracker(0)
-
-            # --- Updater functions ---
-            def make_fill_updater(fr=fill_rect, bg=bg_rect, tr=tracker):
-                def updater(mob):
-                    mob.stretch_to_fit_width(bg.width * tr.get_value() / 100)
-                    mob.align_to(bg, LEFT)
-
-                return updater
-
-            def make_text_updater(txt=pct_text, tr=tracker):
-                def updater(mob):
-                    val = int(round(tr.get_value()))
-                    mob.become(Text(f"{val}%", font_size=12, color=WHITE))
-                    # Keep it anchored to the right of the background
-                    mob.next_to(bg_rect, RIGHT, buff=0.1)
-
-                return updater
-
-            fill_rect.add_updater(make_fill_updater())
-            pct_text.add_updater(make_text_updater())
-
-            self.add(bg_rect, fill_rect, pct_text)
-
-            trackers.append((tracker, pct_target))
-
-        self.wait(0.5)
-
-        # Animate all trackers from 0 → target percentages
-        anims = []
-        for tracker, target in trackers:
-            anims.append(tracker.animate.set_value(target))
-        self.play(AnimationGroup(*anims), run_time=3, rate_func=smooth)
-        self.wait(2)
-
-
 class ProficiencyBars(Scene):
     # --- Customizable data: override in subclasses ---
     LABELS = ["Communication", "Economy", "Strategy", "Mechanics"]
@@ -973,5 +622,142 @@ class MechanicsTree(Scene):
         for child in [shape_know, real_time]:
             self.play(spray_lines[child].animate.set_stroke(YELLOW), run_time=0.3)
             self.play(child.animate.set_color(YELLOW), run_time=0.3)
+
+        self.wait(2)
+
+
+class PracticeOnlyPlateauBars(Scene):
+    def construct(self):
+        BAR_WIDTH = 11
+
+        # Title hidden initially
+        title = Text("Practice Alone", font_size=42).to_edge(UP)
+
+        self.play(FadeIn(title))
+
+        # --------------------
+        # HOURS BAR (BLUE)
+        # --------------------
+        hours_outline = Rectangle(width=BAR_WIDTH, height=0.7).shift(UP * 1.2)
+
+        hours_fill = Rectangle(
+            width=0.01, height=0.62, fill_color=BLUE, fill_opacity=1, stroke_opacity=0
+        )
+        hours_fill.move_to(hours_outline.get_left() + RIGHT * 0.005)
+
+        # --------------------
+        # SKILL BAR (GREEN)
+        # --------------------
+        skill_outline = Rectangle(width=BAR_WIDTH, height=0.7).shift(DOWN * 1.0)
+
+        skill_fill = Rectangle(
+            width=0.01, height=0.62, fill_color=GREEN, fill_opacity=1, stroke_opacity=0
+        )
+        skill_fill.move_to(skill_outline.get_left() + RIGHT * 0.005)
+
+        self.play(Create(hours_outline), Create(skill_outline))
+
+        self.add(hours_fill, skill_fill)
+
+        # Hours keep increasing
+        hour_progress = [
+            0.10,
+            0.20,
+            0.35,
+            0.50,
+            0.65,
+            0.80,
+            0.90,
+            1.00,
+        ]
+
+        # Skill caps at 60%
+        skill_progress = [
+            0.20,
+            0.35,
+            0.48,
+            0.56,
+            0.60,
+            0.60,
+            0.60,
+            0.60,
+        ]
+
+        for h, s in zip(hour_progress, skill_progress):
+
+            new_hours = Rectangle(
+                width=max(0.01, BAR_WIDTH * h),
+                height=0.62,
+                fill_color=BLUE,
+                fill_opacity=1,
+                stroke_opacity=0,
+            )
+            new_hours.move_to(hours_outline.get_left() + RIGHT * (new_hours.width / 2))
+
+            new_skill = Rectangle(
+                width=max(0.01, BAR_WIDTH * s),
+                height=0.62,
+                fill_color=GREEN,
+                fill_opacity=1,
+                stroke_opacity=0,
+            )
+            new_skill.move_to(skill_outline.get_left() + RIGHT * (new_skill.width / 2))
+
+            self.play(
+                Transform(hours_fill, new_hours),
+                Transform(skill_fill, new_skill),
+                run_time=0.7,
+            )
+
+        self.wait(0.3)
+
+        # 60% ceiling marker
+        ceiling_x = skill_outline.get_left()[0] + BAR_WIDTH * 0.60
+
+        ceiling_line = DashedLine(
+            [ceiling_x, -2.2, 0], [ceiling_x, 2.2, 0], color=YELLOW
+        )
+
+        self.play(Create(ceiling_line))
+
+        self.wait(0.5)
+
+        # Reveal meaning only at end
+        time_label = Text("TIME", color=BLUE, font_size=42, weight=BOLD).next_to(
+            hours_outline, UP, buff=0.35
+        )
+
+        skill_label = Text("SKILL", color=GREEN, font_size=42, weight=BOLD).next_to(
+            skill_outline, UP, buff=0.35
+        )
+
+        limit_label = Text(
+            "PRACTICE-ONLY LIMIT", color=YELLOW, font_size=34, weight=BOLD
+        ).to_edge(DOWN)
+
+        self.play(
+            FadeIn(time_label), FadeIn(skill_label), FadeIn(limit_label), run_time=1.5
+        )
+
+        self.wait(3)
+
+        review_fill = Rectangle(
+            width=BAR_WIDTH * 0.40,
+            height=0.62,
+            fill_color=RED,
+            fill_opacity=1,
+            stroke_opacity=0,
+        )
+
+        review_fill.move_to(
+            skill_outline.get_left()
+            + RIGHT * (BAR_WIDTH * 0.60 + review_fill.width / 2)
+        )
+
+        review_text = Text(
+            "Targeted Review + Fix + Repeat", color=RED, font_size=30, weight=BOLD
+        ).next_to(skill_outline, DOWN, buff=1.1)
+
+        self.play(FadeIn(review_fill), FadeIn(review_text), run_time=1.5)
 
         self.wait(2)
