@@ -1915,67 +1915,153 @@ class LearningCycleBars(Scene):
 class EquilateralTriangleFromBase(Scene):
 
     def construct(self):
-        # Equilateral triangle (side = 2)
+        # 1. INITIAL TRIANGLE (larger)
         base_left = np.array([-1, -1, 0])
         base_right = np.array([1, -1, 0])
-        side_length = np.linalg.norm(base_right - base_left)  # 2
-        height = side_length * np.sqrt(3) / 2  # ~1.732
+        height = np.linalg.norm(base_right - base_left) * np.sqrt(3) / 2  # ≈1.732
         top = np.array([0, -1 + height, 0])
 
-        # Lines
         base_line = Line(base_left, base_right, color=WHITE, stroke_width=6)
         left_side = Line(base_left, top, color=WHITE, stroke_width=6)
         right_side = Line(base_right, top, color=WHITE, stroke_width=6)
-
-        # Apex dot
         apex_dot = Dot(top, color=WHITE, radius=0.1)
 
-        # Text
         fundamentals = Text("fundamentals", font_size=36, color=YELLOW)
         fundamentals.next_to(base_line, DOWN, buff=0.3)
 
-        cs2_text = Text("CS2", font_size=48, color=RED, weight=BOLD)
-        cs2_text.next_to(top, UP, buff=0.3)
+        cs2_apex = Text("CS2", font_size=48, color=RED, weight=BOLD)
+        cs2_apex.next_to(top, UP, buff=0.3)
 
-        # --- Animation sequence ---
+        # --- Build initial triangle ---
         self.play(Create(base_line))
         self.wait(0.3)
-
         self.play(FadeIn(fundamentals, shift=UP * 0.1))
         self.wait(0.2)
-
         self.play(base_line.animate.set_color(YELLOW))
         self.wait(0.1)
-
         self.play(
             AnimationGroup(
-                Create(left_side),
-                Create(right_side),
-                Create(apex_dot),
-                lag_ratio=0,
+                Create(left_side), Create(right_side), Create(apex_dot), lag_ratio=0
             )
         )
         self.wait(0.3)
-
-        self.play(Write(cs2_text))
+        self.play(Write(cs2_apex))
         self.wait(0.2)
-
         self.play(apex_dot.animate.set_color(RED))
         self.wait(0.5)
 
-        # --- Fade out everything except the base line and fundamentals ---
+        # --- Fade out sides, apex, CS2 ---
         self.play(
             FadeOut(left_side),
             FadeOut(right_side),
             FadeOut(apex_dot),
-            FadeOut(cs2_text),
+            FadeOut(cs2_apex),
         )
         self.wait(0.3)
 
-        # --- Move the remaining bar and its text lower on the screen ---
+        # --- Move base line and text downward ---
         self.play(
             base_line.animate.shift(DOWN * 2),
             fundamentals.animate.shift(DOWN * 2),
             run_time=1.5,
         )
+        self.wait(0.3)
+
+        # --- Expand to screen edges ---
+        current_y = base_line.get_center()[1]
+        half_w = config.frame_width / 2
+        target_left = np.array([-half_w, current_y, 0])
+        target_right = np.array([half_w, current_y, 0])
+        target_line = Line(target_left, target_right, color=YELLOW, stroke_width=6)
+
+        text_target = target_line.get_center() + DOWN * (0.3 + fundamentals.height / 2)
+        self.play(
+            Transform(base_line, target_line),
+            fundamentals.animate.move_to(text_target),
+            rate_func=linear,
+            run_time=4,
+        )
+        self.wait(0.3)
+
+        # --- Remove bar and text, show red circle at top ---
+        self.play(FadeOut(base_line), FadeOut(fundamentals))
+        top_center = np.array([0, config.frame_height / 2 - 0.3, 0])
+        red_circle = Circle(radius=0.2, color=RED, fill_opacity=1)
+        red_circle.move_to(top_center)
+        self.play(FadeIn(red_circle, scale=0.5))
+        self.wait(2)
+
+        # --- Free fall of red circle ---
+        bottom_y = -config.frame_height / 2 + 0.3
+        fall_dist = top_center[1] - bottom_y
+        self.play(
+            red_circle.animate.shift(DOWN * fall_dist),
+            rate_func=lambda t: t**2,  # accelerating downward
+            run_time=1.5,
+        )
+        self.wait(0.1)
+
+        # --- Shatter into particles ---
+        impact = red_circle.get_center()
+        particles = VGroup(*[Dot(impact, radius=0.04, color=RED) for _ in range(30)])
+        self.add(particles)
+        self.remove(red_circle)
+
+        rng = np.random.default_rng(42)
+        offsets = []
+        for _ in particles:
+            angle = rng.uniform(0, 2 * PI)
+            mag = rng.uniform(0.5, 2.5)
+            offsets.append(np.array([mag * np.cos(angle), mag * np.sin(angle), 0]))
+
+        self.play(
+            AnimationGroup(
+                *[p.animate.shift(off).fade(1) for p, off in zip(particles, offsets)],
+                lag_ratio=0,
+                run_time=1.0,
+            )
+        )
         self.wait(0.5)
+
+        # =========================================================
+        # 2. NEW SMALLER YELLOW BASE FROM LEFT TOWARDS BOTTOM
+        # =========================================================
+        # Coordinates: base length 1.5, final center (-2, -1.8)
+        new_base_len = 1.5
+        final_base_center = np.array([-2, -1.8, 0])
+        final_base_left = final_base_center + np.array([-new_base_len / 2, 0, 0])
+        final_base_right = final_base_center + np.array([new_base_len / 2, 0, 0])
+
+        # Start off‑screen left, a bit higher
+        start_base_center = np.array([-5.5, -0.5, 0])
+        start_left = start_base_center + np.array([-new_base_len / 2, 0, 0])
+        start_right = start_base_center + np.array([new_base_len / 2, 0, 0])
+
+        start_base = Line(start_left, start_right, color=YELLOW, stroke_width=6)
+        final_base = Line(
+            final_base_left, final_base_right, color=YELLOW, stroke_width=6
+        )
+
+        # Add the line off‑screen (invisible), then slide it in
+        self.add(start_base)
+        self.play(Transform(start_base, final_base), run_time=1.5)
+        self.wait(0.3)
+
+        # Build equilateral triangle on this new base
+        base_left_new = final_base.get_left()
+        base_right_new = final_base.get_right()
+        new_height = new_base_len * np.sqrt(3) / 2  # ≈1.299
+        apex_new = np.array(
+            [final_base_center[0], final_base_center[1] + new_height, 0]
+        )
+
+        left_side_new = Line(base_left_new, apex_new, color=WHITE, stroke_width=6)
+        right_side_new = Line(base_right_new, apex_new, color=WHITE, stroke_width=6)
+        apex_dot_new = Dot(apex_new, color=RED, radius=0.1)
+
+        self.play(
+            AnimationGroup(Create(left_side_new), Create(right_side_new), lag_ratio=0)
+        )
+        self.wait(0.2)
+        self.play(FadeIn(apex_dot_new, scale=0.5))
+        self.wait(1)  # final hold
