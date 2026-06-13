@@ -1915,10 +1915,12 @@ class LearningCycleBars(Scene):
 class EquilateralTriangleFromBase(Scene):
 
     def construct(self):
-        # 1. INITIAL TRIANGLE (larger)
+        # ------------------------------------------------------------
+        # 1. INITIAL LARGE TRIANGLE (the one that later expands & fades)
+        # ------------------------------------------------------------
         base_left = np.array([-1, -1, 0])
         base_right = np.array([1, -1, 0])
-        height = np.linalg.norm(base_right - base_left) * np.sqrt(3) / 2  # ≈1.732
+        height = np.linalg.norm(base_right - base_left) * np.sqrt(3) / 2  # ~1.732
         top = np.array([0, -1 + height, 0])
 
         base_line = Line(base_left, base_right, color=WHITE, stroke_width=6)
@@ -1932,7 +1934,7 @@ class EquilateralTriangleFromBase(Scene):
         cs2_apex = Text("CS2", font_size=48, color=RED, weight=BOLD)
         cs2_apex.next_to(top, UP, buff=0.3)
 
-        # --- Build initial triangle ---
+        # --- Build the initial triangle ---
         self.play(Create(base_line))
         self.wait(0.3)
         self.play(FadeIn(fundamentals, shift=UP * 0.1))
@@ -1959,7 +1961,7 @@ class EquilateralTriangleFromBase(Scene):
         )
         self.wait(0.3)
 
-        # --- Move base line and text downward ---
+        # --- Move base line and "fundamentals" downward ---
         self.play(
             base_line.animate.shift(DOWN * 2),
             fundamentals.animate.shift(DOWN * 2),
@@ -1967,7 +1969,7 @@ class EquilateralTriangleFromBase(Scene):
         )
         self.wait(0.3)
 
-        # --- Expand to screen edges ---
+        # --- Expand to full screen edges (linear) ---
         current_y = base_line.get_center()[1]
         half_w = config.frame_width / 2
         target_left = np.array([-half_w, current_y, 0])
@@ -1983,7 +1985,7 @@ class EquilateralTriangleFromBase(Scene):
         )
         self.wait(0.3)
 
-        # --- Remove bar and text, show red circle at top ---
+        # --- Remove bar and text, show red circle at top center ---
         self.play(FadeOut(base_line), FadeOut(fundamentals))
         top_center = np.array([0, config.frame_height / 2 - 0.3, 0])
         red_circle = Circle(radius=0.2, color=RED, fill_opacity=1)
@@ -1991,17 +1993,17 @@ class EquilateralTriangleFromBase(Scene):
         self.play(FadeIn(red_circle, scale=0.5))
         self.wait(2)
 
-        # --- Free fall of red circle ---
+        # --- Free fall of red circle (gravity-like) ---
         bottom_y = -config.frame_height / 2 + 0.3
         fall_dist = top_center[1] - bottom_y
         self.play(
             red_circle.animate.shift(DOWN * fall_dist),
-            rate_func=lambda t: t**2,  # accelerating downward
+            rate_func=lambda t: t**2,  # accelerating
             run_time=1.5,
         )
         self.wait(0.1)
 
-        # --- Shatter into particles ---
+        # --- Shatter the circle into particles ---
         impact = red_circle.get_center()
         particles = VGroup(*[Dot(impact, radius=0.04, color=RED) for _ in range(30)])
         self.add(particles)
@@ -2023,45 +2025,92 @@ class EquilateralTriangleFromBase(Scene):
         )
         self.wait(0.5)
 
-        # =========================================================
-        # 2. NEW SMALLER YELLOW BASE FROM LEFT TOWARDS BOTTOM
-        # =========================================================
-        # Coordinates: base length 1.5, final center (-2, -1.8)
-        new_base_len = 1.5
+        # ================================================================
+        # 2. NEW SMALLER YELLOW BASE SLIDES IN FROM LEFT (towards bottom)
+        # ================================================================
+        small_base_len = 1.5
         final_base_center = np.array([-2, -1.8, 0])
-        final_base_left = final_base_center + np.array([-new_base_len / 2, 0, 0])
-        final_base_right = final_base_center + np.array([new_base_len / 2, 0, 0])
+        final_left = final_base_center + np.array([-small_base_len / 2, 0, 0])
+        final_right = final_base_center + np.array([small_base_len / 2, 0, 0])
 
-        # Start off‑screen left, a bit higher
-        start_base_center = np.array([-5.5, -0.5, 0])
-        start_left = start_base_center + np.array([-new_base_len / 2, 0, 0])
-        start_right = start_base_center + np.array([new_base_len / 2, 0, 0])
+        # Start off-screen left, a bit higher
+        start_center = np.array([-5.5, -0.5, 0])
+        start_left = start_center + np.array([-small_base_len / 2, 0, 0])
+        start_right = start_center + np.array([small_base_len / 2, 0, 0])
 
         start_base = Line(start_left, start_right, color=YELLOW, stroke_width=6)
-        final_base = Line(
-            final_base_left, final_base_right, color=YELLOW, stroke_width=6
-        )
+        final_base = Line(final_left, final_right, color=YELLOW, stroke_width=6)
 
-        # Add the line off‑screen (invisible), then slide it in
         self.add(start_base)
         self.play(Transform(start_base, final_base), run_time=1.5)
         self.wait(0.3)
 
-        # Build equilateral triangle on this new base
-        base_left_new = final_base.get_left()
-        base_right_new = final_base.get_right()
-        new_height = new_base_len * np.sqrt(3) / 2  # ≈1.299
-        apex_new = np.array(
-            [final_base_center[0], final_base_center[1] + new_height, 0]
+        # Build the small equilateral triangle on this base
+        self.small_base = start_base  # now at final position
+        small_left = self.small_base.get_left()  # (-2.75, -1.8)
+        small_right = self.small_base.get_right()  # (-1.25, -1.8)
+        small_height = small_base_len * np.sqrt(3) / 2  # ≈1.299
+        small_apex = np.array(
+            [final_base_center[0], final_base_center[1] + small_height, 0]
         )
 
-        left_side_new = Line(base_left_new, apex_new, color=WHITE, stroke_width=6)
-        right_side_new = Line(base_right_new, apex_new, color=WHITE, stroke_width=6)
-        apex_dot_new = Dot(apex_new, color=RED, radius=0.1)
+        self.small_left_side = Line(small_left, small_apex, color=WHITE, stroke_width=6)
+        self.small_right_side = Line(
+            small_right, small_apex, color=WHITE, stroke_width=6
+        )
+        self.small_apex_dot = Dot(small_apex, color=RED, radius=0.1)
 
         self.play(
-            AnimationGroup(Create(left_side_new), Create(right_side_new), lag_ratio=0)
+            AnimationGroup(
+                Create(self.small_left_side), Create(self.small_right_side), lag_ratio=0
+            )
         )
         self.wait(0.2)
-        self.play(FadeIn(apex_dot_new, scale=0.5))
-        self.wait(1)  # final hold
+        self.play(FadeIn(self.small_apex_dot, scale=0.5))
+        self.wait(0.5)
+
+        # ================================================================
+        # 3. EXPAND THE BASE A LITTLE, THEN TO DOUBLE THE ORIGINAL LENGTH
+        # ================================================================
+        # First, expand a little (0.8) – as previously requested
+        extension_small = 0.8
+        expanded_right_1 = small_right + np.array([extension_small, 0, 0])
+        expanded_base_1 = Line(
+            small_left, expanded_right_1, color=YELLOW, stroke_width=6
+        )
+        self.play(Transform(self.small_base, expanded_base_1), run_time=1.0)
+        self.wait(0.3)
+
+        # Then expand to double the original size (3.0)
+        double_length = 2 * small_base_len  # 3.0
+        final_double_right = small_left + np.array(
+            [double_length, 0, 0]
+        )  # x = -2.75+3.0 = 0.25
+        expanded_base_double = Line(
+            small_left, final_double_right, color=YELLOW, stroke_width=6
+        )
+        self.play(Transform(self.small_base, expanded_base_double), run_time=1.5)
+        self.wait(0.3)
+
+        # ================================================================
+        # 4. DRAW THE NEW TRIANGLE ON THE DOUBLED BASE (overlapping the old)
+        # ================================================================
+        # Left endpoint remains the same, right endpoint is final_double_right
+        new_left = small_left
+        new_right = final_double_right
+        new_midpoint = (new_left + new_right) / 2
+        new_height = double_length * np.sqrt(3) / 2  # ≈2.598
+        new_apex = np.array([new_midpoint[0], new_left[1] + new_height, 0])
+
+        # Create the new triangle sides and apex dot
+        new_left_side = Line(new_left, new_apex, color=WHITE, stroke_width=6)
+        new_right_side = Line(new_right, new_apex, color=WHITE, stroke_width=6)
+        new_apex_dot = Dot(new_apex, color=RED, radius=0.1)
+
+        # Draw the new triangle – it will overlap the old one (old stays visible)
+        self.play(
+            AnimationGroup(Create(new_left_side), Create(new_right_side), lag_ratio=0)
+        )
+        self.wait(0.2)
+        self.play(FadeIn(new_apex_dot, scale=0.5))
+        self.wait(1)
