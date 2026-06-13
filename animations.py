@@ -1927,10 +1927,10 @@ class EquilateralTriangleFromBase(Scene):
         left_side = Line(base_left, top, color=WHITE, stroke_width=6)
         right_side = Line(base_right, top, color=WHITE, stroke_width=6)
 
-        # Apex dot (initially white, will turn red later)
+        # Apex dot
         apex_dot = Dot(top, color=WHITE, radius=0.1)
 
-        # Text elements
+        # Text
         fundamentals = Text("fundamentals", font_size=36, color=YELLOW)
         fundamentals.next_to(base_line, DOWN, buff=0.3)
 
@@ -1938,19 +1938,15 @@ class EquilateralTriangleFromBase(Scene):
         cs2_text.next_to(top, UP, buff=0.3)
 
         # --- Animation sequence ---
-        # 1. Draw the base
         self.play(Create(base_line))
         self.wait(0.3)
 
-        # 2. Show "fundamentals" (stays)
         self.play(FadeIn(fundamentals, shift=UP * 0.1))
         self.wait(0.2)
 
-        # 3. Change base line colour to match fundamentals
         self.play(base_line.animate.set_color(YELLOW))
         self.wait(0.1)
 
-        # 4. Simultaneously draw the two slant sides + the apex dot (white)
         self.play(
             AnimationGroup(
                 Create(left_side),
@@ -1961,10 +1957,25 @@ class EquilateralTriangleFromBase(Scene):
         )
         self.wait(0.3)
 
-        # 5. Write "CS2" at the pinnacle
         self.play(Write(cs2_text))
         self.wait(0.2)
 
-        # 6. Change only the apex dot colour to red (the "top" of the triangle)
         self.play(apex_dot.animate.set_color(RED))
+        self.wait(0.5)
+
+        # --- Fade out everything except the base line and fundamentals ---
+        self.play(
+            FadeOut(left_side),
+            FadeOut(right_side),
+            FadeOut(apex_dot),
+            FadeOut(cs2_text),
+        )
+        self.wait(0.3)
+
+        # --- Move the remaining bar and its text lower on the screen ---
+        self.play(
+            base_line.animate.shift(DOWN * 2),
+            fundamentals.animate.shift(DOWN * 2),
+            run_time=1.5,
+        )
         self.wait(0.5)
